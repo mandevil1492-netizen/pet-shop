@@ -92,3 +92,13 @@
 - Steam build/export ve depolama entegrasyonu
 - Ses tasarimi (BGM/SFX paketleri)
 - Animasyon kalitesi (rig + blend tree)
+
+## Birlikte gelistirme (GitHub)
+
+1. `main` uzerinde direkt calisma yapma.
+2. Yeni is icin branch ac: `feature/...` veya `fix/...`
+3. Issue ac (bug/feature template kullan).
+4. Degisikligi PR ile gonder.
+5. PR template kontrol listesini doldurup merge et.
+
+Detaylar icin: `/Users/yanik/Documents/pet/CONTRIBUTING.md`
