@@ -60,6 +60,7 @@ const SAVE_PATH := "user://clinic_save.json"
 @onready var world_environment: WorldEnvironment = $WorldEnvironment
 @onready var clinic_root: Node3D = $Clinic
 @onready var sun_light: DirectionalLight3D = $DirectionalLight3D
+@onready var main_camera: Camera3D = $Camera3D
 @onready var reception_light: OmniLight3D = $ReceptionLight
 @onready var exam_light: OmniLight3D = $ExamLight
 @onready var treatment_light: OmniLight3D = $TreatmentLight
@@ -106,6 +107,11 @@ var exterior_street_lights: Array[OmniLight3D] = []
 var exterior_cars: Array[Dictionary] = []
 var exterior_walkers: Array[Dictionary] = []
 var billboard_screen_mat: StandardMaterial3D
+var asphalt_material: ShaderMaterial
+var lane_line_material: StandardMaterial3D
+var concrete_material: ShaderMaterial
+var path_material: ShaderMaterial
+var grass_material: ShaderMaterial
 
 var objective_label: Label
 var help_label: Label
@@ -192,33 +198,50 @@ func _build_exterior_world() -> void:
 	_build_street_lights(exterior)
 	_build_ambient_traffic(exterior)
 	_build_ambient_walkers(exterior)
+	_apply_exterior_materials()
+	_add_exterior_reflection_probe(exterior)
 
 func _build_road_network(parent: Node3D) -> void:
 	var road_col := Color(0.16, 0.17, 0.18)
-	_add_box(parent, Vector3(110, 0.06, 8), Vector3(0, -0.02, 16), road_col, 0.96, 0.02)
-	_add_box(parent, Vector3(110, 0.06, 8), Vector3(0, -0.02, -16), road_col, 0.96, 0.02)
-	_add_box(parent, Vector3(8, 0.06, 110), Vector3(24, -0.02, 0), road_col, 0.96, 0.02)
-	_add_box(parent, Vector3(8, 0.06, 110), Vector3(-24, -0.02, 0), road_col, 0.96, 0.02)
+	var road_a := _add_box(parent, Vector3(110, 0.06, 8), Vector3(0, -0.02, 16), road_col, 0.96, 0.02)
+	var road_b := _add_box(parent, Vector3(110, 0.06, 8), Vector3(0, -0.02, -16), road_col, 0.96, 0.02)
+	var road_c := _add_box(parent, Vector3(8, 0.06, 110), Vector3(24, -0.02, 0), road_col, 0.96, 0.02)
+	var road_d := _add_box(parent, Vector3(8, 0.06, 110), Vector3(-24, -0.02, 0), road_col, 0.96, 0.02)
+	road_a.name = "RoadMainA"
+	road_b.name = "RoadMainB"
+	road_c.name = "RoadCrossA"
+	road_d.name = "RoadCrossB"
 
 	var line_col := Color(0.94, 0.91, 0.55)
 	for x in range(-46, 47, 8):
-		_add_box(parent, Vector3(3.2, 0.02, 0.26), Vector3(float(x), 0.02, 16), line_col, 0.4, 0.0)
-		_add_box(parent, Vector3(3.2, 0.02, 0.26), Vector3(float(x), 0.02, -16), line_col, 0.4, 0.0)
+		var line_a := _add_box(parent, Vector3(3.2, 0.02, 0.26), Vector3(float(x), 0.02, 16), line_col, 0.4, 0.0)
+		var line_b := _add_box(parent, Vector3(3.2, 0.02, 0.26), Vector3(float(x), 0.02, -16), line_col, 0.4, 0.0)
+		line_a.name = "LaneLineX"
+		line_b.name = "LaneLineX"
 	for z in range(-46, 47, 8):
-		_add_box(parent, Vector3(0.26, 0.02, 3.2), Vector3(24, 0.02, float(z)), line_col, 0.4, 0.0)
-		_add_box(parent, Vector3(0.26, 0.02, 3.2), Vector3(-24, 0.02, float(z)), line_col, 0.4, 0.0)
+		var line_c := _add_box(parent, Vector3(0.26, 0.02, 3.2), Vector3(24, 0.02, float(z)), line_col, 0.4, 0.0)
+		var line_d := _add_box(parent, Vector3(0.26, 0.02, 3.2), Vector3(-24, 0.02, float(z)), line_col, 0.4, 0.0)
+		line_c.name = "LaneLineZ"
+		line_d.name = "LaneLineZ"
 
 func _build_sidewalks_and_paths(parent: Node3D) -> void:
 	var sidewalk_col := Color(0.76, 0.76, 0.74)
-	_add_box(parent, Vector3(54, 0.08, 3.4), Vector3(0, -0.01, 10.4), sidewalk_col, 0.82, 0.0)
-	_add_box(parent, Vector3(54, 0.08, 3.4), Vector3(0, -0.01, -10.4), sidewalk_col, 0.82, 0.0)
-	_add_box(parent, Vector3(3.4, 0.08, 44), Vector3(10.7, -0.01, 0), sidewalk_col, 0.82, 0.0)
-	_add_box(parent, Vector3(3.4, 0.08, 44), Vector3(-10.7, -0.01, 0), sidewalk_col, 0.82, 0.0)
+	var sw_a := _add_box(parent, Vector3(54, 0.08, 3.4), Vector3(0, -0.01, 10.4), sidewalk_col, 0.82, 0.0)
+	var sw_b := _add_box(parent, Vector3(54, 0.08, 3.4), Vector3(0, -0.01, -10.4), sidewalk_col, 0.82, 0.0)
+	var sw_c := _add_box(parent, Vector3(3.4, 0.08, 44), Vector3(10.7, -0.01, 0), sidewalk_col, 0.82, 0.0)
+	var sw_d := _add_box(parent, Vector3(3.4, 0.08, 44), Vector3(-10.7, -0.01, 0), sidewalk_col, 0.82, 0.0)
+	sw_a.name = "Sidewalk"
+	sw_b.name = "Sidewalk"
+	sw_c.name = "Sidewalk"
+	sw_d.name = "Sidewalk"
 
 	var path_col := Color(0.67, 0.57, 0.43)
-	_add_box(parent, Vector3(28, 0.05, 2.2), Vector3(0, -0.025, 31), path_col, 0.9, 0.0)
-	_add_box(parent, Vector3(2.2, 0.05, 24), Vector3(-35, -0.025, 0), path_col, 0.9, 0.0)
-	_add_box(parent, Vector3(2.2, 0.05, 24), Vector3(35, -0.025, 0), path_col, 0.9, 0.0)
+	var path_a := _add_box(parent, Vector3(28, 0.05, 2.2), Vector3(0, -0.025, 31), path_col, 0.9, 0.0)
+	var path_b := _add_box(parent, Vector3(2.2, 0.05, 24), Vector3(-35, -0.025, 0), path_col, 0.9, 0.0)
+	var path_c := _add_box(parent, Vector3(2.2, 0.05, 24), Vector3(35, -0.025, 0), path_col, 0.9, 0.0)
+	path_a.name = "WalkPath"
+	path_b.name = "WalkPath"
+	path_c.name = "WalkPath"
 
 func _build_houses(parent: Node3D) -> void:
 	var house_positions := [
@@ -380,6 +403,8 @@ func _build_street_lights(parent: Node3D) -> void:
 		light.light_energy = 0.8
 		light.light_color = Color(1.0, 0.89, 0.7)
 		light.omni_range = 9.5
+		light.shadow_enabled = true
+		light.light_size = 0.25
 		lamp.add_child(light)
 		exterior_street_lights.append(light)
 
@@ -489,6 +514,8 @@ func _add_box(parent: Node3D, size: Vector3, pos: Vector3, color: Color, rough: 
 	box.size = size
 	m.mesh = box
 	m.position = pos
+	m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	m.gi_mode = GeometryInstance3D.GI_MODE_STATIC
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = color
 	mat.roughness = rough
@@ -496,6 +523,141 @@ func _add_box(parent: Node3D, size: Vector3, pos: Vector3, color: Color, rough: 
 	m.material_override = mat
 	parent.add_child(m)
 	return m
+
+func _prepare_surface_material_library() -> void:
+	if asphalt_material and concrete_material and path_material and grass_material and lane_line_material:
+		return
+
+	var asphalt_shader := Shader.new()
+	asphalt_shader.code = """
+shader_type spatial;
+render_mode diffuse_burley, specular_schlick_ggx;
+
+uniform vec3 base_col : source_color = vec3(0.14, 0.15, 0.16);
+uniform float wetness = 0.2;
+uniform float scale = 5.8;
+
+float hash21(vec2 p) {
+	p = fract(p * vec2(123.34, 345.45));
+	p += dot(p, p + 34.345);
+	return fract(p.x * p.y);
+}
+
+void fragment() {
+	vec3 wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	vec2 uv = wp.xz / scale;
+	float n = hash21(floor(uv * 36.0));
+	float grain = (n - 0.5) * 0.12;
+	float crack = smoothstep(0.72, 0.95, abs(sin(uv.x * 18.0) * cos(uv.y * 15.0)));
+	ALBEDO = base_col + vec3(grain - crack * 0.04);
+	ROUGHNESS = mix(0.92, 0.52, wetness) + crack * 0.05;
+	METALLIC = 0.02;
+	SPECULAR = 0.42;
+}
+"""
+	asphalt_material = ShaderMaterial.new()
+	asphalt_material.shader = asphalt_shader
+
+	lane_line_material = StandardMaterial3D.new()
+	lane_line_material.albedo_color = Color(0.93, 0.88, 0.58)
+	lane_line_material.roughness = 0.38
+	lane_line_material.metallic = 0.0
+
+	var concrete_shader := Shader.new()
+	concrete_shader.code = """
+shader_type spatial;
+render_mode diffuse_burley, specular_schlick_ggx;
+
+uniform vec3 base_col : source_color = vec3(0.73, 0.73, 0.72);
+uniform float scale = 4.5;
+
+float hash21(vec2 p) {
+	p = fract(p * vec2(234.34, 435.345));
+	p += dot(p, p + 45.32);
+	return fract(p.x * p.y);
+}
+
+void fragment() {
+	vec3 wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	vec2 uv = wp.xz / scale;
+	float n = hash21(floor(uv * 24.0));
+	float p = hash21(floor(uv * 9.0));
+	float dirt = smoothstep(0.65, 1.0, p) * 0.08;
+	ALBEDO = base_col + vec3((n - 0.5) * 0.08 - dirt);
+	ROUGHNESS = 0.84;
+	METALLIC = 0.0;
+	SPECULAR = 0.36;
+}
+"""
+	concrete_material = ShaderMaterial.new()
+	concrete_material.shader = concrete_shader
+
+	var path_shader := Shader.new()
+	path_shader.code = """
+shader_type spatial;
+render_mode diffuse_burley, specular_schlick_ggx;
+
+uniform vec3 soil_a : source_color = vec3(0.5, 0.41, 0.31);
+uniform vec3 soil_b : source_color = vec3(0.43, 0.34, 0.26);
+uniform float scale = 3.8;
+
+void fragment() {
+	vec3 wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	float pattern = sin(wp.x * scale) * cos(wp.z * scale * 0.8);
+	float blend = smoothstep(-0.9, 0.9, pattern);
+	ALBEDO = mix(soil_a, soil_b, blend);
+	ROUGHNESS = 0.9;
+	METALLIC = 0.0;
+	SPECULAR = 0.24;
+}
+"""
+	path_material = ShaderMaterial.new()
+	path_material.shader = path_shader
+
+	var grass_shader := Shader.new()
+	grass_shader.code = """
+shader_type spatial;
+render_mode diffuse_burley, specular_schlick_ggx;
+
+uniform vec3 grass_a : source_color = vec3(0.26, 0.39, 0.24);
+uniform vec3 grass_b : source_color = vec3(0.19, 0.31, 0.18);
+uniform float scale = 2.1;
+
+void fragment() {
+	vec3 wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	float variation = sin(wp.x * scale) * sin(wp.z * scale * 0.9);
+	float mask = smoothstep(-0.75, 0.75, variation);
+	ALBEDO = mix(grass_a, grass_b, mask);
+	ROUGHNESS = 0.96;
+	METALLIC = 0.0;
+	SPECULAR = 0.18;
+}
+"""
+	grass_material = ShaderMaterial.new()
+	grass_material.shader = grass_shader
+
+func _apply_exterior_materials() -> void:
+	if not has_node("Exterior"):
+		return
+	if not asphalt_material:
+		_prepare_surface_material_library()
+
+	var exterior := get_node("Exterior")
+	for child in exterior.get_children():
+		if child is MeshInstance3D:
+			var mesh := child as MeshInstance3D
+			mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+			mesh.gi_mode = GeometryInstance3D.GI_MODE_STATIC
+			if mesh.name.begins_with("Road"):
+				mesh.material_override = asphalt_material
+			elif mesh.name.begins_with("LaneLine"):
+				mesh.material_override = lane_line_material
+			elif mesh.name == "Sidewalk":
+				mesh.material_override = concrete_material
+			elif mesh.name == "WalkPath":
+				mesh.material_override = path_material
+			elif mesh.name == "CityGround":
+				mesh.material_override = grass_material
 
 func _capture_preview() -> void:
 	await get_tree().process_frame
@@ -508,42 +670,64 @@ func _capture_preview() -> void:
 	get_tree().quit()
 
 func _enhance_visual_quality() -> void:
+	_prepare_surface_material_library()
 	var env: Environment = world_environment.environment
 	if env:
 		var sky_mat := PhysicalSkyMaterial.new()
-		sky_mat.rayleigh_coefficient = 2.0
-		sky_mat.mie_coefficient = 0.01
-		sky_mat.mie_eccentricity = 0.83
-		sky_mat.turbidity = 2.4
+		sky_mat.rayleigh_coefficient = 2.2
+		sky_mat.mie_coefficient = 0.012
+		sky_mat.mie_eccentricity = 0.82
+		sky_mat.turbidity = 2.1
+		sky_mat.sun_disk_scale = 1.2
 		var sky := Sky.new()
 		sky.sky_material = sky_mat
 		env.background_mode = Environment.BG_SKY
 		env.sky = sky
 		env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-		env.tonemap_exposure = 1.12
-		env.tonemap_white = 1.45
+		env.tonemap_exposure = 1.08
+		env.tonemap_white = 1.2
 		env.glow_enabled = true
-		env.glow_bloom = 0.06
-		env.glow_intensity = 0.72
+		env.glow_bloom = 0.08
+		env.glow_intensity = 0.62
 		env.ssao_enabled = true
-		env.ssao_radius = 1.9
-		env.ssao_intensity = 1.6
+		env.ssao_radius = 2.2
+		env.ssao_intensity = 1.35
 		env.set("ssil_enabled", true)
-		env.set("ssil_radius", 3.6)
+		env.set("ssil_radius", 4.1)
+		env.set("ssr_enabled", true)
+		env.set("ssr_fade_in", 0.12)
+		env.set("ssr_fade_out", 1.9)
+		env.set("sdfgi_enabled", true)
+		env.set("sdfgi_bounce_feedback", 0.42)
+		env.set("sdfgi_energy", 1.18)
+		env.set("adjustment_enabled", true)
+		env.set("adjustment_contrast", 1.08)
+		env.set("adjustment_saturation", 1.05)
 		env.set("fog_enabled", true)
 		env.set("fog_density", 0.006)
 		env.set("fog_sky_affect", 0.24)
 		env.set("volumetric_fog_enabled", true)
-		env.set("volumetric_fog_density", 0.022)
+		env.set("volumetric_fog_density", 0.018)
 
-	sun_light.light_energy = 1.7
+	sun_light.light_energy = 1.65
 	sun_light.light_color = Color(1.0, 0.96, 0.9)
 	sun_light.shadow_enabled = true
-	sun_light.shadow_blur = 1.6
+	sun_light.shadow_blur = 1.15
+	sun_light.set("directional_shadow_mode", DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS)
+	sun_light.set("directional_shadow_max_distance", 120.0)
+	sun_light.set("directional_shadow_fade_start", 0.85)
+	sun_light.light_angular_distance = 0.45
+
+	main_camera.set("near", 0.03)
+	main_camera.set("far", 220.0)
+
+	reception_light.shadow_enabled = true
 	reception_light.light_energy = 1.45
 	reception_light.light_size = 0.45
+	exam_light.shadow_enabled = true
 	exam_light.light_energy = 1.52
 	exam_light.light_size = 0.42
+	treatment_light.shadow_enabled = true
 	treatment_light.light_energy = 1.48
 	treatment_light.light_size = 0.43
 
@@ -612,7 +796,22 @@ func _add_reflection_probe() -> void:
 	probe.update_mode = ReflectionProbe.UPDATE_ALWAYS
 	probe.interior = true
 	probe.box_projection = true
+	probe.intensity = 1.18
+	probe.max_distance = 0.0
+	probe.cull_mask = 0xFFFFFFFF
 	$Clinic.add_child(probe)
+
+func _add_exterior_reflection_probe(exterior: Node3D) -> void:
+	if exterior.has_node("ExteriorReflectionProbe"):
+		return
+	var probe := ReflectionProbe.new()
+	probe.name = "ExteriorReflectionProbe"
+	probe.position = Vector3(0, 3.6, 0)
+	probe.size = Vector3(124, 14, 124)
+	probe.box_projection = true
+	probe.update_mode = ReflectionProbe.UPDATE_ONCE
+	probe.intensity = 0.9
+	exterior.add_child(probe)
 
 func _add_post_fx_overlay() -> void:
 	if $CanvasLayer.has_node("PostFxOverlay"):
@@ -881,9 +1080,12 @@ func _update_day_night(delta: float) -> void:
 		var env: Environment = world_environment.environment
 		env.background_color = Color(0.08, 0.11, 0.18).lerp(Color(0.64, 0.78, 0.95), day_factor)
 		env.ambient_light_energy = lerp(0.38, 1.0, day_factor)
-		env.tonemap_exposure = lerp(0.92, 1.18, day_factor)
+		env.tonemap_exposure = lerp(0.95, 1.12, day_factor)
 		env.set("fog_density", lerp(0.014, 0.006, day_factor))
-		env.set("volumetric_fog_density", lerp(0.034, 0.022, day_factor))
+		env.set("volumetric_fog_density", lerp(0.028, 0.018, day_factor))
+
+	if asphalt_material:
+		asphalt_material.set_shader_parameter("wetness", lerp(0.55, 0.16, day_factor))
 
 	var street_energy: float = lerp(1.9, 0.14, day_factor)
 	for street in exterior_street_lights:
