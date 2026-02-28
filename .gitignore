@@ -1,0 +1,8 @@
+.DS_Store
+.godot/
+Library/
+*.tmp
+*.log
+*.import
+*.uid
+user://

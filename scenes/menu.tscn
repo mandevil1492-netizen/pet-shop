@@ -1,0 +1,105 @@
+[gd_scene load_steps=2 format=3 uid="uid://dxwkc3f7ll8f3"]
+
+[ext_resource type="Script" path="res://scripts/menu_controller.gd" id="1_omd15"]
+
+[node name="Menu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_omd15")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.83, 0.9, 0.97, 1)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="Center"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+custom_minimum_size = Vector2(620, 460)
+
+[node name="Margin" type="MarginContainer" parent="Center/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 22
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 22
+theme_override_constants/margin_bottom = 20
+
+[node name="VBox" type="VBoxContainer" parent="Center/Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Center/Panel/Margin/VBox"]
+layout_mode = 2
+text = "Pati Protokolu"
+
+[node name="Subtitle" type="Label" parent="Center/Panel/Margin/VBox"]
+layout_mode = 2
+text = "Petshop + Veteriner Yonetim Simulasyonu"
+
+[node name="ContinueButton" type="Button" parent="Center/Panel/Margin/VBox"]
+layout_mode = 2
+text = "Devam Et"
+
+[node name="NewGameButton" type="Button" parent="Center/Panel/Margin/VBox"]
+layout_mode = 2
+text = "Yeni Oyun"
+
+[node name="ResetButton" type="Button" parent="Center/Panel/Margin/VBox"]
+layout_mode = 2
+text = "Kaydi Sifirla"
+
+[node name="SettingsTitle" type="Label" parent="Center/Panel/Margin/VBox"]
+layout_mode = 2
+text = "Ayarlar"
+
+[node name="SettingsRow" type="HBoxContainer" parent="Center/Panel/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="FullscreenCheck" type="CheckBox" parent="Center/Panel/Margin/VBox/SettingsRow"]
+layout_mode = 2
+text = "Tam Ekran"
+
+[node name="ScaleOption" type="OptionButton" parent="Center/Panel/Margin/VBox/SettingsRow"]
+layout_mode = 2
+
+[node name="VolumeRow" type="HBoxContainer" parent="Center/Panel/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="VolumeLabel" type="Label" parent="Center/Panel/Margin/VBox/VolumeRow"]
+layout_mode = 2
+text = "Master Ses"
+
+[node name="VolumeSlider" type="HSlider" parent="Center/Panel/Margin/VBox/VolumeRow"]
+layout_mode = 2
+min_value = -30.0
+max_value = 6.0
+step = 1.0
+size_flags_horizontal = 3
+
+[node name="InfoLabel" type="Label" parent="Center/Panel/Margin/VBox"]
+layout_mode = 2
+autowrap_mode = 2
+text = "-"
+
+[node name="QuitButton" type="Button" parent="Center/Panel/Margin/VBox"]
+layout_mode = 2
+text = "Cikis"

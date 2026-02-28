@@ -1,0 +1,320 @@
+[gd_scene load_steps=18 format=3 uid="uid://blfx0j7r1pfdn"]
+
+[ext_resource type="Script" path="res://scripts/game_manager.gd" id="1_5xvkl"]
+[ext_resource type="Script" path="res://scripts/camera_controller.gd" id="2_6h3wt"]
+
+[sub_resource type="Environment" id="Environment_8yv1b"]
+background_mode = 2
+background_color = Color(0.9, 0.95, 0.98, 1)
+ambient_light_source = 3
+ambient_light_color = Color(1, 1, 1, 1)
+ambient_light_energy = 1.0
+ssao_enabled = true
+ssao_radius = 1.4
+glow_enabled = true
+glow_bloom = 0.05
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_1m1fr"]
+size = Vector2(18, 14)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_7sbk6"]
+albedo_color = Color(0.95, 0.96, 0.98, 1)
+roughness = 0.94
+
+[sub_resource type="BoxMesh" id="BoxMesh_a1d8w"]
+size = Vector3(18, 0.2, 14)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_fd20s"]
+albedo_color = Color(0.86, 0.9, 0.96, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_75i4v"]
+size = Vector3(18, 2.8, 0.2)
+
+[sub_resource type="BoxMesh" id="BoxMesh_oomiv"]
+size = Vector3(0.2, 2.8, 14)
+
+[sub_resource type="BoxMesh" id="BoxMesh_y8f8j"]
+size = Vector3(0.2, 2.8, 5)
+
+[node name="Main" type="Node3D"]
+script = ExtResource("1_5xvkl")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_8yv1b")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.806707, -0.321394, 0.497261, 0, 0.839619, 0.543182, -0.590949, -0.438136, 0.677324, 0, 7.17448, 0)
+light_energy = 1.35
+shadow_enabled = true
+
+[node name="ReceptionLight" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.7, 2.4, 1.1)
+light_color = Color(1, 0.95, 0.88, 1)
+light_energy = 1.1
+omni_range = 7.0
+
+[node name="ExamLight" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.6, -2.2)
+light_color = Color(0.95, 0.97, 1, 1)
+light_energy = 1.2
+omni_range = 8.0
+
+[node name="TreatmentLight" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.9, 2.4, 0.8)
+light_color = Color(0.92, 0.98, 1, 1)
+light_energy = 1.15
+omni_range = 7.0
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.853038, 0.521852, 0, -0.521852, 0.853038, 0, 10.311, 13.48)
+current = true
+fov = 58.0
+script = ExtResource("2_6h3wt")
+
+[node name="Clinic" type="Node3D" parent="."]
+
+[node name="Floor" type="MeshInstance3D" parent="Clinic"]
+mesh = SubResource("BoxMesh_a1d8w")
+surface_material_override/0 = SubResource("StandardMaterial3D_7sbk6")
+
+[node name="BackWall" type="MeshInstance3D" parent="Clinic"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4, -6.9)
+mesh = SubResource("BoxMesh_75i4v")
+surface_material_override/0 = SubResource("StandardMaterial3D_fd20s")
+
+[node name="LeftWall" type="MeshInstance3D" parent="Clinic"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.9, 1.4, 0)
+mesh = SubResource("BoxMesh_oomiv")
+surface_material_override/0 = SubResource("StandardMaterial3D_fd20s")
+
+[node name="RightWall" type="MeshInstance3D" parent="Clinic"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.9, 1.4, 0)
+mesh = SubResource("BoxMesh_oomiv")
+surface_material_override/0 = SubResource("StandardMaterial3D_fd20s")
+
+[node name="DividerA" type="MeshInstance3D" parent="Clinic"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.9, 1.4, -1.8)
+mesh = SubResource("BoxMesh_y8f8j")
+surface_material_override/0 = SubResource("StandardMaterial3D_fd20s")
+
+[node name="DividerB" type="MeshInstance3D" parent="Clinic"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.9, 1.4, 1.8)
+mesh = SubResource("BoxMesh_y8f8j")
+surface_material_override/0 = SubResource("StandardMaterial3D_fd20s")
+
+[node name="Stations" type="Node3D" parent="Clinic"]
+
+[node name="EntrancePoint" type="Marker3D" parent="Clinic/Stations"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 5.8)
+
+[node name="ReceptionPoint" type="Marker3D" parent="Clinic/Stations"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.0, 0, 2.1)
+
+[node name="ExamPoint" type="Marker3D" parent="Clinic/Stations"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.8)
+
+[node name="TreatmentPoint" type="Marker3D" parent="Clinic/Stations"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.0, 0, 2.1)
+
+[node name="ExitPoint" type="Marker3D" parent="Clinic/Stations"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 6.2)
+
+[node name="Props" type="Node3D" parent="Clinic"]
+
+[node name="CounterAnchor" type="Marker3D" parent="Clinic/Props"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -6.2, 0, 1.2)
+
+[node name="ExamTableAnchor" type="Marker3D" parent="Clinic/Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0, -2.4)
+
+[node name="ShelfAnchor" type="Marker3D" parent="Clinic/Props"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 8.0, 0, 0.8)
+
+[node name="CartAnchor" type="Marker3D" parent="Clinic/Props"]
+transform = Transform3D(0.92388, 0, 0.382683, 0, 1, 0, -0.382683, 0, 0.92388, 5.2, 0, 1.4)
+
+[node name="PlantAnchor" type="Marker3D" parent="Clinic/Props"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.6, 0, -4.8)
+
+[node name="Actors" type="Node3D" parent="."]
+
+[node name="Worker" type="Node3D" parent="Actors"]
+
+[node name="VisualRoot" type="Node3D" parent="Actors/Worker"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, 0)
+
+[node name="Patient" type="Node3D" parent="Actors"]
+
+[node name="VisualRoot" type="Node3D" parent="Actors/Patient"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, 0)
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="HUD" type="Control" parent="CanvasLayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TopBar" type="HBoxContainer" parent="CanvasLayer/HUD"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 20.0
+offset_top = 18.0
+offset_right = -20.0
+offset_bottom = 54.0
+theme_override_constants/separation = 22
+
+[node name="DayLabel" type="Label" parent="CanvasLayer/HUD/TopBar"]
+layout_mode = 2
+text = "Gun: 1"
+
+[node name="CashLabel" type="Label" parent="CanvasLayer/HUD/TopBar"]
+layout_mode = 2
+text = "Nakit: $1200"
+
+[node name="ReputationLabel" type="Label" parent="CanvasLayer/HUD/TopBar"]
+layout_mode = 2
+text = "Itibar: 1"
+
+[node name="QueueLabel" type="Label" parent="CanvasLayer/HUD/TopBar"]
+layout_mode = 2
+text = "Kuyruk: 3"
+
+[node name="StreakLabel" type="Label" parent="CanvasLayer/HUD/TopBar"]
+layout_mode = 2
+text = "Seri: x0"
+
+[node name="SatisfactionLabel" type="Label" parent="CanvasLayer/HUD/TopBar"]
+layout_mode = 2
+text = "Memnuniyet: 75"
+
+[node name="WorkflowPanel" type="PanelContainer" parent="CanvasLayer/HUD"]
+layout_mode = 1
+offset_left = 20.0
+offset_top = 70.0
+offset_right = 430.0
+offset_bottom = 315.0
+
+[node name="Margin" type="MarginContainer" parent="CanvasLayer/HUD/WorkflowPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="VBox" type="VBoxContainer" parent="CanvasLayer/HUD/WorkflowPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="PetLabel" type="Label" parent="CanvasLayer/HUD/WorkflowPanel/Margin/VBox"]
+layout_mode = 2
+text = "Hasta: -"
+
+[node name="SymptomLabel" type="Label" parent="CanvasLayer/HUD/WorkflowPanel/Margin/VBox"]
+layout_mode = 2
+text = "Belirti: -"
+
+[node name="TreatmentLabel" type="Label" parent="CanvasLayer/HUD/WorkflowPanel/Margin/VBox"]
+layout_mode = 2
+text = "Tedavi: -"
+
+[node name="SeverityLabel" type="Label" parent="CanvasLayer/HUD/WorkflowPanel/Margin/VBox"]
+layout_mode = 2
+text = "Oncelik: -"
+
+[node name="StatusLabel" type="Label" parent="CanvasLayer/HUD/WorkflowPanel/Margin/VBox"]
+layout_mode = 2
+autowrap_mode = 2
+text = "Durum: Hazir"
+
+[node name="ReceptionRoomLabel" type="Label" parent="CanvasLayer/HUD/WorkflowPanel/Margin/VBox"]
+layout_mode = 2
+text = "Resepsiyon: Bos"
+
+[node name="ExamRoomLabel" type="Label" parent="CanvasLayer/HUD/WorkflowPanel/Margin/VBox"]
+layout_mode = 2
+text = "Muayene Odasi: Bos"
+
+[node name="TreatmentRoomLabel" type="Label" parent="CanvasLayer/HUD/WorkflowPanel/Margin/VBox"]
+layout_mode = 2
+text = "Tedavi Odasi: Bos"
+
+[node name="UpgradePanel" type="PanelContainer" parent="CanvasLayer/HUD"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -420.0
+offset_top = 70.0
+offset_right = -20.0
+offset_bottom = 355.0
+
+[node name="Margin" type="MarginContainer" parent="CanvasLayer/HUD/UpgradePanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="VBox" type="VBoxContainer" parent="CanvasLayer/HUD/UpgradePanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="CanvasLayer/HUD/UpgradePanel/Margin/VBox"]
+layout_mode = 2
+text = "Klinik Gelistirmeleri"
+
+[node name="ReceptionLabel" type="Label" parent="CanvasLayer/HUD/UpgradePanel/Margin/VBox"]
+layout_mode = 2
+text = "Resepsiyon Lv.1 | Maliyet: $300"
+
+[node name="ReceptionButton" type="Button" parent="CanvasLayer/HUD/UpgradePanel/Margin/VBox"]
+layout_mode = 2
+text = "Resepsiyon Yukselt"
+
+[node name="ExamLabel" type="Label" parent="CanvasLayer/HUD/UpgradePanel/Margin/VBox"]
+layout_mode = 2
+text = "Muayene Lv.1 | Maliyet: $300"
+
+[node name="ExamButton" type="Button" parent="CanvasLayer/HUD/UpgradePanel/Margin/VBox"]
+layout_mode = 2
+text = "Muayene Yukselt"
+
+[node name="TreatmentLabel" type="Label" parent="CanvasLayer/HUD/UpgradePanel/Margin/VBox"]
+layout_mode = 2
+text = "Tedavi Lv.1 | Maliyet: $300"
+
+[node name="TreatmentButton" type="Button" parent="CanvasLayer/HUD/UpgradePanel/Margin/VBox"]
+layout_mode = 2
+text = "Tedavi Yukselt"
+
+[node name="Actions" type="HBoxContainer" parent="CanvasLayer/HUD"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = -74.0
+offset_right = -20.0
+offset_bottom = -20.0
+grow_vertical = 0
+theme_override_constants/separation = 12
+
+[node name="NextCaseButton" type="Button" parent="CanvasLayer/HUD/Actions"]
+layout_mode = 2
+text = "Yeni Hasta Cagir"
+
+[node name="DiagnoseButton" type="Button" parent="CanvasLayer/HUD/Actions"]
+layout_mode = 2
+disabled = true
+text = "Teshis Baslat"
+
+[node name="TreatButton" type="Button" parent="CanvasLayer/HUD/Actions"]
+layout_mode = 2
+disabled = true
+text = "Tedavi Uygula"
