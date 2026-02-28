@@ -116,6 +116,7 @@ var grass_material: ShaderMaterial
 var objective_label: Label
 var help_label: Label
 var emergency_button: Button
+var surgery_button: Button
 var achievement_label: Label
 var unlocked: Dictionary = {
 	"first_case": false,
@@ -126,6 +127,7 @@ var unlocked: Dictionary = {
 
 var pets: Array[String] = ["Kedi", "Kopek", "Tavsan", "Kus", "Hamster", "Papagan"]
 var symptoms: Array[String] = ["Istahsizlik", "Aksirma", "Topallama", "Kasinti", "Yorgunluk", "Sulu Goz", "Ates", "Kulak Enfeksiyonu"]
+var case_types: Array[String] = ["Kontrol", "Tedavi", "Ameliyat", "Acil Bakim"]
 var correct_treatments: Dictionary = {
 	"Istahsizlik": "Beslenme Programi",
 	"Aksirma": "Enfeksiyon Ilaci",
@@ -140,6 +142,13 @@ var correct_treatments: Dictionary = {
 const BASE_WORKER_SPEED: float = 3.2
 const BASE_PATIENT_SPEED: float = 2.6
 const ARRIVE_EPS: float = 0.18
+
+var surgery_active: bool = false
+var surgery_steps_done: int = 0
+var surgery_steps_required: int = 0
+var surgery_step_timer: float = 0.0
+var complication_active: bool = false
+var complication_timer: float = 0.0
 
 func _ready() -> void:
 	randomize()
@@ -158,6 +167,7 @@ func _ready() -> void:
 	exam_upgrade_button.pressed.connect(_on_upgrade_exam)
 	treatment_upgrade_button.pressed.connect(_on_upgrade_treatment)
 	emergency_button.pressed.connect(_on_emergency_protocol)
+	surgery_button.pressed.connect(_on_surgery_pressed)
 
 	if AppState.consume_new_game_request():
 		AppState.delete_save()
@@ -882,6 +892,12 @@ func _reset_progress_defaults() -> void:
 	case_state = CaseState.IDLE
 	current_case = {}
 	case_elapsed = 0.0
+	surgery_active = false
+	surgery_steps_done = 0
+	surgery_steps_required = 0
+	surgery_step_timer = 0.0
+	complication_active = false
+	complication_timer = 0.0
 
 func _setup_clinic_positions() -> void:
 	worker.global_position = reception_point.global_position
@@ -917,6 +933,11 @@ func _setup_runtime_ui() -> void:
 	emergency_button.text = "Acil Protokol"
 	emergency_button.disabled = true
 	actions_container.add_child(emergency_button)
+
+	surgery_button = Button.new()
+	surgery_button.text = "Ameliyat Uygula"
+	surgery_button.disabled = true
+	actions_container.add_child(surgery_button)
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
@@ -961,6 +982,18 @@ func _process(delta: float) -> void:
 		case_elapsed += delta
 		if case_state in [CaseState.WAIT_DIAGNOSIS, CaseState.WAIT_TREATMENT] and case_elapsed > case_deadline:
 			_fail_current_case("Sure asimi")
+
+	if case_state == CaseState.WAIT_TREATMENT and complication_active:
+		complication_timer -= delta
+		if complication_timer <= 0.0:
+			_fail_current_case("Komplikasyon")
+			return
+
+	if case_state == CaseState.WAIT_TREATMENT and surgery_active:
+		surgery_step_timer -= delta
+		if surgery_step_timer <= 0.0:
+			_fail_current_case("Ameliyat adimi gecikti")
+			return
 
 	match case_state:
 		CaseState.TO_RECEPTION:
@@ -1147,6 +1180,15 @@ func _severity_multiplier(severity: String) -> float:
 
 func _generate_case() -> void:
 	var symptom: String = symptoms[randi() % symptoms.size()]
+	var case_type := "Kontrol"
+	var type_roll := randf()
+	if type_roll < 0.16 + float(day) * 0.006:
+		case_type = "Ameliyat"
+	elif type_roll < 0.34:
+		case_type = "Acil Bakim"
+	elif type_roll < 0.68:
+		case_type = "Tedavi"
+
 	var severity_roll: float = randf()
 	var severity: String = "Normal"
 	if severity_roll < min(0.15 + float(day) * 0.015, 0.42):
@@ -1166,14 +1208,22 @@ func _generate_case() -> void:
 		"pet": pets[randi() % pets.size()],
 		"symptom": symptom,
 		"treatment": correct_treatments[symptom],
+		"case_type": case_type,
 		"severity": severity,
-		"diagnosis_ok": false
+		"diagnosis_ok": false,
+		"surgery_completed": false
 	}
 
 func _start_case() -> void:
 	if queue_size <= 0 or game_won or game_lost:
 		return
 	_generate_case()
+	surgery_active = false
+	surgery_steps_done = 0
+	surgery_steps_required = 0
+	surgery_step_timer = 0.0
+	complication_active = false
+	complication_timer = 0.0
 	patient.visible = true
 	patient.global_position = entrance_point.global_position
 	worker_target = reception_point.global_position + Vector3(-0.6, 0, 0)
@@ -1189,6 +1239,8 @@ func _finalize_case_cycle() -> void:
 	case_state = CaseState.IDLE
 	current_case = {}
 	case_elapsed = 0.0
+	surgery_active = false
+	complication_active = false
 	_update_achievements()
 
 	if queue_size <= 0:
@@ -1248,6 +1300,8 @@ func _fail_current_case(reason: String) -> void:
 	reputation = max(1, reputation - 1)
 	clinic_score = max(0, clinic_score - 45)
 	cash -= 90
+	surgery_active = false
+	complication_active = false
 
 	worker_target = reception_point.global_position + Vector3(-0.4, 0, 0)
 	patient_target = exit_point.global_position
@@ -1277,7 +1331,7 @@ func _refresh_ui() -> void:
 
 	pet_label.text = "Hasta: %s" % String(current_case.get("pet", "-"))
 	symptom_label.text = "Belirti: %s" % String(current_case.get("symptom", "-"))
-	treatment_label.text = "Tedavi: %s" % String(current_case.get("treatment", "-"))
+	treatment_label.text = "Tedavi: %s | Tur: %s" % [String(current_case.get("treatment", "-")), String(current_case.get("case_type", "-"))]
 	severity_label.text = "Oncelik: %s | Kalan sure: %.1fs" % [String(current_case.get("severity", "-")), max(0.0, case_deadline - case_elapsed)]
 
 	reception_room_label.text = "Resepsiyon: %s (Lv.%d)" % [_room_status("reception"), reception_level]
@@ -1293,9 +1347,11 @@ func _refresh_ui() -> void:
 
 	var fp_mode := _is_first_person_mode()
 	diagnose_button.disabled = case_state != CaseState.WAIT_DIAGNOSIS or game_won or game_lost or fp_mode
-	treat_button.disabled = case_state != CaseState.WAIT_TREATMENT or game_won or game_lost or fp_mode
+	var is_surgery_case := String(current_case.get("case_type", "")) == "Ameliyat"
+	treat_button.disabled = case_state != CaseState.WAIT_TREATMENT or game_won or game_lost or fp_mode or is_surgery_case
 	next_case_button.disabled = case_state != CaseState.IDLE or queue_size <= 0 or game_won or game_lost or fp_mode
 	emergency_button.disabled = case_state != CaseState.WAIT_TREATMENT or String(current_case.get("severity", "")) == "Normal" or game_won or game_lost or fp_mode
+	surgery_button.disabled = case_state != CaseState.WAIT_TREATMENT or (not is_surgery_case) or game_won or game_lost or fp_mode
 
 	reception_upgrade_button.disabled = cash < _upgrade_cost(reception_level) or game_won or game_lost
 	exam_upgrade_button.disabled = cash < _upgrade_cost(exam_level) or game_won or game_lost
@@ -1314,11 +1370,20 @@ func _diagnosis_success() -> bool:
 func _treatment_success(emergency_mode: bool) -> bool:
 	var severity: String = String(current_case.get("severity", "Normal"))
 	var diagnosis_ok: bool = bool(current_case.get("diagnosis_ok", false))
+	var case_type: String = String(current_case.get("case_type", "Kontrol"))
 	var chance: float = 0.55 + float(treatment_level) * 0.09
 	if diagnosis_ok:
 		chance += 0.17
 	if emergency_mode:
 		chance += 0.22
+	if case_type == "Ameliyat":
+		chance -= 0.1
+		if bool(current_case.get("surgery_completed", false)):
+			chance += 0.18
+	if case_type == "Acil Bakim":
+		chance -= 0.06
+	if complication_active and not emergency_mode:
+		chance -= 0.14
 	if severity == "Kritik":
 		chance -= 0.16
 	elif severity == "Acil":
@@ -1341,17 +1406,40 @@ func _on_diagnose_pressed() -> void:
 
 	worker_target = treatment_point.global_position + Vector3(-0.3, 0, 0)
 	patient_target = treatment_point.global_position + Vector3(0.6, 0, 0)
+
+	complication_active = false
+	complication_timer = 0.0
+	var severity: String = String(current_case.get("severity", "Normal"))
+	var case_type: String = String(current_case.get("case_type", "Kontrol"))
+	var complication_roll := randf()
+	if severity in ["Acil", "Kritik"] or case_type == "Acil Bakim":
+		var chance := 0.22 if severity == "Acil" else 0.34
+		if case_type == "Acil Bakim":
+			chance += 0.12
+		if complication_roll < chance:
+			complication_active = true
+			complication_timer = 8.0 + float(treatment_level) * 0.6
+			status_label.text = "Durum: Komplikasyon riski! Acil Protokol onerilir."
+
 	case_state = CaseState.TO_TREATMENT
 
 func _complete_treatment(emergency_mode: bool) -> void:
 	if case_state != CaseState.WAIT_TREATMENT:
 		return
+	if String(current_case.get("case_type", "")) == "Ameliyat" and not bool(current_case.get("surgery_completed", false)):
+		status_label.text = "Durum: Bu vaka icin ameliyat adimlarini tamamla."
+		return
 
 	var success: bool = _treatment_success(emergency_mode)
 	if success:
 		var severity: String = String(current_case.get("severity", "Normal"))
+		var case_type: String = String(current_case.get("case_type", "Kontrol"))
 		var base_income: int = 210 + treatment_level * 28
 		base_income = int(float(base_income) * _severity_multiplier(severity))
+		if case_type == "Ameliyat":
+			base_income += 120 + treatment_level * 20
+		elif case_type == "Acil Bakim":
+			base_income += 80
 		if emergency_mode:
 			base_income -= 60
 		var combo_bonus: int = min(260, streak * 14)
@@ -1366,12 +1454,41 @@ func _complete_treatment(emergency_mode: bool) -> void:
 		_fail_current_case("Tedavi hatasi")
 		return
 
+	surgery_active = false
+	complication_active = false
 	worker_target = reception_point.global_position + Vector3(-0.4, 0, 0)
 	patient_target = exit_point.global_position
 	case_state = CaseState.DISCHARGE
 
 func _on_treat_pressed() -> void:
 	_complete_treatment(false)
+
+func _on_surgery_pressed() -> void:
+	if case_state != CaseState.WAIT_TREATMENT:
+		return
+	if String(current_case.get("case_type", "")) != "Ameliyat":
+		return
+
+	if not surgery_active:
+		surgery_active = true
+		surgery_steps_done = 0
+		var severity: String = String(current_case.get("severity", "Normal"))
+		surgery_steps_required = 3
+		if severity == "Acil":
+			surgery_steps_required = 4
+		elif severity == "Kritik":
+			surgery_steps_required = 5
+		surgery_step_timer = max(1.0, 2.2 - float(treatment_level) * 0.08)
+		status_label.text = "Durum: Ameliyat basladi (%d adim)." % surgery_steps_required
+		return
+
+	surgery_steps_done += 1
+	surgery_step_timer = max(0.85, 2.0 - float(treatment_level) * 0.08)
+	status_label.text = "Durum: Ameliyat adimi %d/%d" % [surgery_steps_done, surgery_steps_required]
+	if surgery_steps_done >= surgery_steps_required:
+		surgery_active = false
+		current_case["surgery_completed"] = true
+		status_label.text = "Durum: Ameliyat tamamlandi. Simdi tedaviyi onayla."
 
 func _on_emergency_protocol() -> void:
 	_complete_treatment(true)
@@ -1560,6 +1677,12 @@ func _load_game(show_feedback: bool) -> bool:
 	case_state = CaseState.IDLE
 	current_case = {}
 	case_elapsed = 0.0
+	surgery_active = false
+	surgery_steps_done = 0
+	surgery_steps_required = 0
+	surgery_step_timer = 0.0
+	complication_active = false
+	complication_timer = 0.0
 	patient.visible = false
 	_setup_clinic_positions()
 
