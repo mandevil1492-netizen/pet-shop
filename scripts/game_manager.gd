@@ -149,6 +149,7 @@ func _ready() -> void:
 	_spawn_characters()
 	_spawn_props()
 	_setup_clinic_positions()
+	_configure_character_camera()
 
 	diagnose_button.pressed.connect(_on_diagnose_pressed)
 	treat_button.pressed.connect(_on_treat_pressed)
@@ -886,6 +887,16 @@ func _setup_clinic_positions() -> void:
 	worker.global_position = reception_point.global_position
 	patient.global_position = entrance_point.global_position
 	patient.visible = false
+	_configure_character_camera()
+
+func _configure_character_camera() -> void:
+	if main_camera and main_camera.has_method("set_player_character"):
+		main_camera.call("set_player_character", worker, worker_visual_root)
+
+func _is_first_person_mode() -> bool:
+	if main_camera and main_camera.has_method("is_first_person_enabled"):
+		return bool(main_camera.call("is_first_person_enabled"))
+	return false
 
 func _setup_runtime_ui() -> void:
 	objective_label = Label.new()
@@ -893,7 +904,7 @@ func _setup_runtime_ui() -> void:
 	$CanvasLayer/HUD/TopBar.add_child(objective_label)
 
 	help_label = Label.new()
-	help_label.text = "F5 Kaydet | F9 Yukle | P Duraklat"
+	help_label.text = "F5 Kaydet | F9 Yukle | P Duraklat | V 1.Sahis | WASD + Mouse"
 	help_label.position = Vector2(20, 332)
 	$CanvasLayer/HUD.add_child(help_label)
 
@@ -933,6 +944,11 @@ func _process(delta: float) -> void:
 	if integrity_check_timer > 2.5:
 		integrity_check_timer = 0.0
 		_ensure_visual_integrity()
+
+	if _is_first_person_mode():
+		status_label.text = "Durum: Birinci Sahis Modu (V ile cikis)."
+		_refresh_ui()
+		return
 
 	if game_won or game_lost:
 		_refresh_ui()
@@ -1275,10 +1291,11 @@ func _refresh_ui() -> void:
 	objective_label.text = "Hedef: Itibar 25, Nakit $12000 | Skor: %d" % clinic_score
 	achievement_label.text = "Basarim: %d/4" % _achievement_count()
 
-	diagnose_button.disabled = case_state != CaseState.WAIT_DIAGNOSIS or game_won or game_lost
-	treat_button.disabled = case_state != CaseState.WAIT_TREATMENT or game_won or game_lost
-	next_case_button.disabled = case_state != CaseState.IDLE or queue_size <= 0 or game_won or game_lost
-	emergency_button.disabled = case_state != CaseState.WAIT_TREATMENT or String(current_case.get("severity", "")) == "Normal" or game_won or game_lost
+	var fp_mode := _is_first_person_mode()
+	diagnose_button.disabled = case_state != CaseState.WAIT_DIAGNOSIS or game_won or game_lost or fp_mode
+	treat_button.disabled = case_state != CaseState.WAIT_TREATMENT or game_won or game_lost or fp_mode
+	next_case_button.disabled = case_state != CaseState.IDLE or queue_size <= 0 or game_won or game_lost or fp_mode
+	emergency_button.disabled = case_state != CaseState.WAIT_TREATMENT or String(current_case.get("severity", "")) == "Normal" or game_won or game_lost or fp_mode
 
 	reception_upgrade_button.disabled = cash < _upgrade_cost(reception_level) or game_won or game_lost
 	exam_upgrade_button.disabled = cash < _upgrade_cost(exam_level) or game_won or game_lost
